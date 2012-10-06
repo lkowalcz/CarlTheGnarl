@@ -8,6 +8,9 @@ import reply
 ###################################################
 #ugly try catch all
 try:
+	# main directory
+	DIRECTORY = 'C:\Twitterbot\CarlTheGnarl'
+
 	# log files
 	LAST_MENTION_ID = 'log/last_id.txt'
 	LAST_MESSAGE_ID = 'log/last_mid.txt'
@@ -35,7 +38,7 @@ try:
 	TWEET_TERMS = ['stoked ski', 'skiing powder', 'skiing', 'freeskiing', 'winter', 'big mountain skiing', 'park skiing', 'ski boots', 'ski mountain', 'newschoolers', 'san francisco', 'bay area', '49ers', 'wine', 'cooking', 'grilling', 'gym', 'workout', 'fantasy league', 'protein', 'golfing', 'baseball']
 
 	# get stored info
-	os.chdir('C:\Twitterbot\CarlTheGnarl')
+	os.chdir(DIRECTORY)
 
 	# get last status mention id used
 	if os.path.exists(LAST_MENTION_ID):
