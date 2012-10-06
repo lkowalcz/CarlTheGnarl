@@ -1,6 +1,6 @@
 import subprocess, time, urllib, random
 BOT_PY = 'bot.py'
-REPLY_PY = 'reply.py'
+REPLY_PY = 'test_reply.py'
 while 1:
 	# execute bot cycle
 	try:
