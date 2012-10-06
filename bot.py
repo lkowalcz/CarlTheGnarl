@@ -35,7 +35,7 @@ try:
 	TWEET_TERMS = ['stoked ski', 'skiing powder', 'skiing', 'freeskiing', 'winter', 'big mountain skiing', 'park skiing', 'ski boots', 'ski mountain', 'newschoolers', 'san francisco', 'bay area', '49ers', 'wine', 'cooking', 'grilling', 'gym', 'workout', 'fantasy league', 'protein', 'golfing', 'baseball']
 
 	# get stored info
-	os.chdir('C:\Twitterbot')
+	os.chdir('C:\Twitterbot\CarlTheGnarl')
 
 	# get last status mention id used
 	if os.path.exists(LAST_MENTION_ID):
