@@ -2,16 +2,14 @@ import twitter, os, sys, re, random
 import reply
 
 ####################################################
-#
 # TODO: prune favorites after removing friends? (delete and favorited tweets of no longer friends)
-#
 ###################################################
+
 # main directory
 DIRECTORY = 'C:\Twitterbot\CarlTheGnarl'
 
 # log files
 LAST_MENTION_ID = 'log/last_id.txt'
-LAST_MESSAGE_ID = 'log/last_mid.txt'
 
 # authentication info
 CONSUMER_KEY='KrYmGq2yTOof2wt33nKNg'
@@ -37,6 +35,8 @@ TWEET_TERMS = ['stoked ski', 'skiing powder', 'skiing', 'freeskiing', 'winter', 
 # things carl doesn't like
 BLACKLIST = ['http', '@', 'shit', 'fuck', 'asshole', 'ass', 'bitch', 'nigga', 'nigger', 'motherfucker', 'fucker'] 
 
+# initialize these guys in case for some reason the api call to populate them fails
+# later parts use them, and having them empty is ok, but not initialized is not ok
 followers = []
 friends = []
 
@@ -58,16 +58,6 @@ try:
 			last_mention_id = 0
 	else:
 		last_mention_id = 0
-
-	# get last direct message id used
-	if os.path.exists(LAST_MESSAGE_ID):
-		fp = open(LAST_MESSAGE_ID)
-		last_message_id = fp.read().strip()
-		fp.close()
-		if(last_message_id == ''):
-			last_message_id = 0
-	else:
-		last_message_id = 0
 except:
 	print 'Error reading log files\n'
 
@@ -210,29 +200,6 @@ try:
 except:
 	print 'Error trying to post.\n'
 
-####################################
-# get direct messages since last id
-####################################
-checkmessages = 0
-if checkmessages:
-	messages = api.GetDirectMessages(since_id=last_message_id)
-	for message in messages:
-		text = message.GetText()
-		print 'Got message: ' + text + '\n'
-		if random.random() < REPLY_PROB:
-			rep = reply.getreply(text)
-			if(rep != ''):
-				print 'Replying: ' + rep + '\n'
-				try:
-					api.PostDirectMessage(message.GetSenderId(), rep)
-				except:
-					print 'Error sending message!\n'
-			else:
-				print 'Not replying\n'
-		else:
-			print 'Not replying\n'
-	print 'Done with messages\n'
-
 #############################
 # get mentions since last id
 #############################
@@ -274,12 +241,6 @@ except:
 # update logs
 ##############
 try:
-	if checkmessages:
-		if len([x.id for x in messages]) > 0 :
-			print 'Writing new last_mid...\n'
-			fp = open(LAST_MESSAGE_ID, 'w')
-			fp.write(str(max([x.id for x in messages])))
-			fp.close()
 	if len([x.id for x in mentions]) > 0 :
 		print 'Writing new last_id...\n'
 		fp = open(LAST_MENTION_ID, 'w')
