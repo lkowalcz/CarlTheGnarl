@@ -181,7 +181,7 @@ try:
 		try:
 			text = candidate.GetText()
 			# if a status doesn't mention anyone and doesn't have a link and doesn't use profanity, use it
-			if any(text.find(term) != -1 for term in BLACKLIST):
+			if all(text.find(term) == -1 for term in BLACKLIST):
 				# check if status is from a follower, if so, don't use it
 				candidate_name = candidate.GetUser().GetScreenName()
 				if candidate_name not in followersNames:
