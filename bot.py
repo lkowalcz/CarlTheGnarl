@@ -234,7 +234,7 @@ try:
 							print 'Error creating friendship with ' + tofriend + '\n'
 		else:
 			# don't favorite spam mentions - check to see that at most 2 other people are also mentioned in the status
-			if len(list(re.finditer('@', status.GetText()))) < 3
+			if len(list(re.finditer('@', status.GetText()))) < 3:
 				api.CreateFavorite(status)
 except:
 	print 'Error processing mentions\n'
