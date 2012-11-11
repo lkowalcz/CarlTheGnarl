@@ -105,7 +105,7 @@ try:
 					print 'Error removing friend\n'
 			else:
 				# don't be friends with people who don't follow many people (they probably won't follow back)
-				if friend.friends_count < 10:
+				if friend.friends_count < (0.7 * friend.followers_count):
 					print 'Removing: ' + friend.GetScreenName() + '\n'
 					try:
 						api.DestroyFriendship(friend.GetScreenName())
