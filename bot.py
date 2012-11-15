@@ -18,9 +18,9 @@ ACCESS_TOKEN_KEY='783117738-kb7DUZtCypv8DH8aq4g0AKiuQRiYK8xLMIBUYMaW'
 ACCESS_TOKEN_SECRET='g0pMGqMIFrYrW7cG5nzjw90NZHgKEH2QlkxQeaC7Ic'
 
 # chance of dropping an unfollowing friend
-PRUNE_PROB = 0.06
+PRUNE_PROB = 0.09
 # ADD_PROB * number of following = number of friends to add each cycle
-ADD_PROB = 0.04
+ADD_PROB = 0.03
 # chance of favoriting a new friend's status
 FAVORITE_PROB = 0.4
 # chance of following a person mentioned by a follower 
