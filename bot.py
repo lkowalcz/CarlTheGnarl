@@ -18,7 +18,7 @@ ACCESS_TOKEN_KEY='783117738-kb7DUZtCypv8DH8aq4g0AKiuQRiYK8xLMIBUYMaW'
 ACCESS_TOKEN_SECRET='g0pMGqMIFrYrW7cG5nzjw90NZHgKEH2QlkxQeaC7Ic'
 
 # chance of dropping an unfollowing friend
-PRUNE_PROB = 0.9
+PRUNE_PROB = 0.5
 # ADD_PROB * number of following = number of friends to add each cycle
 ADD_PROB = 0.03
 # chance of favoriting a new friend's status
@@ -70,19 +70,40 @@ except:
 	print 'Error authenticating\n'
 	sys.exit()
 
+##################################
+# build friend and follower lists
+##################################
+
+# temporary fix due to this twitter wrapper using API version 1 - need to migrate to different wrapper
+def MyGetFollowerIDs(api, cursor):
+	url = 'http://api.twitter.com/1.1/followers/ids.json?cursor=' + str(cursor) + '&screen_name=carlthegnarl'
+	json = api._FetchUrl(url)
+	data = api._ParseAndCheckTwitter(json)
+	return data
+
+print 'Building friend/followers id lists\n'
+cursor = -1
+while cursor != 0:
+	ret = MyGetFollowerIDs(api, cursor)
+	cursor = ret["next_cursor"]
+	followers.extend(ret["ids"])
+cursor = -1
+while cursor != 0:
+	ret = api.GetFriendIDs(cursor=cursor)
+	cursor = ret["next_cursor"]
+	friends.extend(ret["ids"])
+print 'Found ' + str(len(friends)) + ' friends and ' + str(len(followers)) + ' followers!\n'
+
 ###########################################
 # friend any followers that aren't friends
 ###########################################
 try:
 	print 'Friending any followers who are not friends...\n'
-	followers = api.GetFollowers()
-	friends = api.GetFriends()
-	friendsNames = map((lambda friend: friend.GetScreenName()), friends)
-	newFollowers = filter((lambda follower: follower.GetScreenName() not in friendsNames), followers)
+	newFollowers = filter((lambda follower: follower not in friends), followers)
 	for follower in newFollowers:
-		print 'Following: ' + follower.GetScreenName() + '\n'
+		print 'Following: ' + str(follower) + '\n'
 		try:
-			api.CreateFriendship(follower.GetScreenName())
+			api.CreateFriendship(follower)
 		except:
 			print 'Error making friend\n'
 except:
@@ -93,24 +114,15 @@ except:
 ####################
 try:
 	print 'Pruning friend list...\n'
-	followersNames = map((lambda follower: follower.GetScreenName()), followers)
 	for friend in friends:
-		if friend.GetScreenName() not in followersNames:
+		if friend not in followers:
 			# if friend is not following back, remove him with PRUNE_PROB probability
 			if random.random() < PRUNE_PROB:
-				print 'Removing: ' + friend.GetScreenName() + '\n'
+				print 'Removing: ' + str(friend) + '\n'
 				try:
-					api.DestroyFriendship(friend.GetScreenName())
+					api.DestroyFriendship(friend)
 				except:
 					print 'Error removing friend\n'
-			else:
-				# don't be friends with people who don't follow many people (they probably won't follow back)
-				if friend.friends_count < (0.7 * friend.followers_count):
-					print 'Removing: ' + friend.GetScreenName() + '\n'
-					try:
-						api.DestroyFriendship(friend.GetScreenName())
-					except:
-						print 'Error removing friend\n'
 except:
 	print 'Error pruning friend list\n'
 
@@ -120,7 +132,7 @@ except:
 
 # using random keyword
 try:	
-	toAdd = int(ADD_PROB * len(friends))
+	toAdd = int(ADD_PROB * len(followers))
 	toSearch = random.choice(SEARCH_TERMS)
 	print '\nSearching for new friends who tweet about: ' + toSearch
 	candidates = api.GetSearch(toSearch)
@@ -135,7 +147,7 @@ try:
 					print '. Favoriting his tweet too!'
 					api.CreateFavorite(candidate)
 				api.CreateFriendship(name)
-				toAdd = toAdd - 1
+				toAdd -= 1
 			except:
 				print '\nError adding ' + name
 except:
@@ -148,9 +160,8 @@ toAdd = int(ADD_PROB * len(friends))
 for follower in followers:
 	if toAdd < 0:
 		break
-	name = follower.GetScreenName()
 	try:
-		statuses = api.GetUserTimeline(name)
+		statuses = api.GetUserTimeline(id=follower)
 		for status in statuses:
 			text = status.GetText()
 			users = pattern.findall(text)
@@ -158,18 +169,15 @@ for follower in followers:
 				ustrip = user.strip()
 				if ustrip != '' and ustrip[1:].lower() != 'carlthegnarl':
 					tofriend = ustrip[1:];
-					if any(s.GetScreenName().lower() == tofriend.lower() for s in friends):
-						continue
-					else:
-						print 'Following user: '+ tofriend + '\n'
-						try:
-							if random.random() < BRANCH_PROB:
-								toAdd = toAdd - 1
-								api.CreateFriendship(tofriend)
-						except:
-							print 'Error creating friendship with ' + tofriend + '\n'
+					print 'Following user: '+ tofriend + '\n'
+					try:
+						if random.random() < BRANCH_PROB:
+							toAdd = toAdd - 1
+							api.CreateFriendship(tofriend)
+					except:
+						print 'Error creating friendship with ' + tofriend + '\n'
 	except:
-		print 'Error accessing timeline for' + name
+		print 'Error accessing timeline for' + str(follower)
 
 ###############
 # post a tweet
@@ -183,8 +191,8 @@ try:
 			# if a status doesn't mention anyone and doesn't have a link and doesn't use profanity, use it
 			if all(text.find(term) == -1 for term in BLACKLIST):
 				# check if status is from a follower, if so, don't use it
-				candidate_name = candidate.GetUser().GetScreenName()
-				if candidate_name not in followersNames:
+				candidate_id = candidate.GetUser().id
+				if candidate_id not in followers:
 					# check if status has been used already
 					notrepeat = 1
 					mystatuses = api.GetUserTimeline()
@@ -224,14 +232,11 @@ try:
 				ustrip = user.strip()
 				if ustrip != '' and ustrip[1:].lower() != 'carlthegnarl':
 					tofriend = ustrip[1:];
-					if any(s.GetScreenName().lower() == tofriend.lower() for s in friends):
-						continue
-					else:
-						print 'Following user: '+ tofriend + '\n'
-						try:
-							api.CreateFriendship(tofriend)
-						except:
-							print 'Error creating friendship with ' + tofriend + '\n'
+					print 'Following user: '+ tofriend + '\n'
+					try:
+						api.CreateFriendship(tofriend)
+					except:
+						print 'Error creating friendship with ' + tofriend + '\n'
 		else:
 			# don't favorite spam mentions - check to see that at most 2 other people are also mentioned in the status
 			if len(list(re.finditer('@', status.GetText()))) < 3:
