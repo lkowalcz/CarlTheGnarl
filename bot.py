@@ -19,8 +19,10 @@ ACCESS_TOKEN_SECRET='g0pMGqMIFrYrW7cG5nzjw90NZHgKEH2QlkxQeaC7Ic'
 
 # chance of dropping an unfollowing friend
 PRUNE_PROB = 0.5
-# ADD_PROB * number of following = number of friends to add each cycle
-ADD_PROB = 0.03
+# ADD_NUM = number of friends to add each cycle
+ADD_NUM = 10
+# ADD_NUM = number of friends of friends to add each cycle
+BRANCH_NUM = 2
 # chance of favoriting a new friend's status
 FAVORITE_PROB = 0.4
 # chance of following a person mentioned by a follower 
@@ -35,8 +37,6 @@ TWEET_TERMS = ['stoked ski', 'skiing powder', 'skiing', 'freeskiing', 'winter', 
 # things carl doesn't like
 BLACKLIST = ['http', '@', 'shit', 'fuck', 'asshole', 'ass', 'bitch', 'nigga', 'nigger', 'motherfucker', 'fucker', 'niggas', 'cunt', 'bastard', 'boner', 'cock', 'ho', 'whore', 'pussy', 'slut'] 
 
-# initialize these guys in case for some reason the api call to populate them fails
-# later parts use them, and having them empty is ok, but not initialized is not ok
 followers = []
 friends = []
 
@@ -132,7 +132,7 @@ except:
 
 # using random keyword
 try:	
-	toAdd = int(ADD_PROB * len(followers))
+	toAdd = ADD_NUM
 	toSearch = random.choice(SEARCH_TERMS)
 	print '\nSearching for new friends who tweet about: ' + toSearch
 	candidates = api.GetSearch(toSearch)
@@ -155,7 +155,7 @@ except:
 
 # branching from current friends
 pattern = re.compile('@[^\s]*')
-toAdd = int(ADD_PROB * len(friends))
+toAdd = BRANCH_NUM
 # this is messy and needs to be cleaned up
 for follower in followers:
 	if toAdd < 0:
