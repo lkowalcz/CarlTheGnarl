@@ -62,12 +62,20 @@ def respond_questions(client):
 			q += '?'
 			has_answer, answer_string = get_answer(q)
 			if has_answer:
-				reply = '@' + status['user']['screen_name'] + ' ' + answer_string
+				r = '@' + status['user']['screen_name'] + ' ' + answer_string
+				# remove spaces, replace with '+'
+				reply = ''
+				for word in r.split(' '):
+					reply += '+' + word
+				reply = reply[1:]
+				
 				print 'Got response: ' + reply
 				post_string = 'https://api.twitter.com/1.1/statuses/update.json?in_reply_to_status_id='
 				post_string += status['id_str']
-				post_string += '&status="' + reply + '"'
-				client.request(post_string, method='POST')
+				post_string += '&status=' + reply
+				resp, content = client.request(post_string, method='POST')
+				print 'resp:\n' + str(resp)
+				print 'content:\n' + str(content)
 			else:
 				print 'Could not generate response'
 
@@ -129,10 +137,10 @@ token = oauth.Token(key=ACCESS_TOKEN_KEY, secret=ACCESS_TOKEN_SECRET)
 client = oauth.Client(consumer,token)
 
 # friend any followers who Carl is not following back yet
-friend_all_followers(client)
+#friend_all_followers(client)
 
 # try to make new friends by favoriting their tweets
-favorite_tweets(client)
+#favorite_tweets(client)
 
 # respond to questions
 respond_questions(client)
