@@ -1,6 +1,8 @@
 import oauth2 as oauth
 import json
 import random
+import re
+import httplib2
 
 def friend_all_followers(client):
 	get_followers_url='https://api.twitter.com/1.1/followers/ids.json?count=5000'
@@ -43,6 +45,69 @@ def favorite_tweets(client):
 			favorite_string = 'https://api.twitter.com/1.1/favorites/create.json?id=' + id_str
 			client.request(favorite_string, method='POST')
 
+def respond_questions(client):
+	f = open('mention_id.txt', 'r')
+	last_id = int(f.read())
+	
+	mentions_string = 'https://api.twitter.com/1.1/statuses/mentions_timeline.json?since_id=' + str(last_id)
+	resp, content = client.request(mentions_string, method='GET')
+	mentions = json.loads(content)
+	print 'Found ' + str(len(mentions)) + ' mentions!'
+	for status in mentions:
+		text = status['text']
+		if question_to_carl(text):
+			print 'Responding to: ' + text
+			split_text = text.split('?')
+			q = ' '.join(re.sub("(@[A-Za-z0-9]+)|([^0-9A-Za-z \t])|(\w+:\/\/\S+)"," ", split_text[0]).split())
+			q += '?'
+			has_answer, answer_string = get_answer(q)
+			if has_answer:
+				reply = '@' + status['user']['screen_name'] + ' ' + answer_string
+				print 'Got response: ' + reply
+				post_string = 'https://api.twitter.com/1.1/statuses/update.json?in_reply_to_status_id='
+				post_string += status['id_str']
+				post_string += '&status="' + reply + '"'
+				client.request(post_string, method='POST')
+			else:
+				print 'Could not generate response'
+
+		if status['id'] > last_id:
+			last_id = status['id']
+	
+	f = open('mention_id.txt', 'w')
+	f.write(str(last_id))
+	f.close()
+
+def question_to_carl(text):
+	# returns if tweet text is likely a question directed at carl
+	if len(list(re.finditer('@', text))) > 2:
+		return False
+	if len(list(re.finditer('\?', text))) == 0:
+		return False
+	return True
+
+def get_answer(q):
+	# remove spaces, replace with '+'
+	question = ''
+	for word in q.split(' '):
+		question += '+' + word
+	question = question[1:]
+
+	answer_string = 'http://answers.yahooapis.com/AnswersService/V1/questionSearch?appid=10&output=json&query="' + question + '"'
+	resp, content = httplib2.Http().request(answer_string)
+
+	response = json.loads(content)
+	all_response = response['all']
+	questions = all_response['questions']
+	if len(questions) > 0:
+		answer = questions[0]['ChosenAnswer']
+		# take first sentence or 110 characters, whichever is smaller
+		sentences = answer.split('.')
+		reply = sentences[0][:110]
+		return (True, reply)
+	else:
+		return (False, '')
+
 # authentication info
 CONSUMER_KEY='KrYmGq2yTOof2wt33nKNg'
 CONSUMER_SECRET='WAEDzQJAEIuiYWyjLxBERjdjgPFMCQpSFtlMBBIiRg'
@@ -64,10 +129,12 @@ token = oauth.Token(key=ACCESS_TOKEN_KEY, secret=ACCESS_TOKEN_SECRET)
 client = oauth.Client(consumer,token)
 
 # friend any followers who Carl is not following back yet
-#friend_all_followers(client)
+friend_all_followers(client)
 
 # try to make new friends by favoriting their tweets
 favorite_tweets(client)
 
+# respond to questions
+respond_questions(client)
 
 print 'Done\n'
